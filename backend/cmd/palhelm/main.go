@@ -25,6 +25,10 @@ import (
 // version is stamped at build time via -ldflags "-X main.version=...".
 var version = "dev"
 
+var fetchMapTilesCommand = func(args ...string) *exec.Cmd {
+	return exec.Command("/usr/local/bin/fetch-map-tiles", args...)
+}
+
 func main() {
 	server.PanelVersion = version
 	if err := run(); err != nil {
@@ -64,7 +68,7 @@ func fetchMapTiles(args []string) error {
 		}
 		args = []string{filepath.Join(dataDir, "map-tiles")}
 	}
-	cmd := exec.Command("/usr/local/bin/fetch-map-tiles", args...)
+	cmd := fetchMapTilesCommand(args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
