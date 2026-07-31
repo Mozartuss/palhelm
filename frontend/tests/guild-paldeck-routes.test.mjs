@@ -28,5 +28,7 @@ test("Paldeck screen distinguishes partial save observations from pinned progres
   assert.match(source, /Species captured/);
   assert.match(source, /Unique species counter/);
   assert.match(source, /Missing data is never counted as zero/);
+  assert.match(source, /api\.paldeck\.iconDataset/);
+  assert.match(source, /Pal icons are not installed/);
   assert.match(source, /Unseen \(needs full data\)/);
 });
