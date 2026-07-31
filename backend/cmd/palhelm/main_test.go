@@ -55,3 +55,52 @@ func TestFetchMapTiles(t *testing.T) {
 		}
 	})
 }
+
+func TestFetchPalIcons(t *testing.T) {
+	original := fetchPalIconsCommand
+	t.Cleanup(func() { fetchPalIconsCommand = original })
+
+	t.Run("uses data directory as default destination", func(t *testing.T) {
+		t.Setenv("PALHELM_DATA_DIR", "/custom/data")
+		var got []string
+		fetchPalIconsCommand = func(args ...string) *exec.Cmd {
+			got = append([]string(nil), args...)
+			return exec.Command("sh", "-c", "exit 0")
+		}
+
+		if err := fetchPalIcons(nil); err != nil {
+			t.Fatalf("fetchPalIcons() error = %v", err)
+		}
+		want := []string{"/custom/data/pal-icons"}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("fetchPalIcons() args = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("forwards explicit arguments", func(t *testing.T) {
+		var got []string
+		fetchPalIconsCommand = func(args ...string) *exec.Cmd {
+			got = append([]string(nil), args...)
+			return exec.Command("sh", "-c", "exit 0")
+		}
+		want := []string{"--force"}
+
+		if err := fetchPalIcons(want); err != nil {
+			t.Fatalf("fetchPalIcons() error = %v", err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("fetchPalIcons() args = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("returns downloader failure", func(t *testing.T) {
+		fetchPalIconsCommand = func(args ...string) *exec.Cmd {
+			return exec.Command("sh", "-c", "exit 17")
+		}
+
+		err := fetchPalIcons(nil)
+		if err == nil || !strings.Contains(err.Error(), "fetch pal icons: exit status 17") {
+			t.Fatalf("fetchPalIcons() error = %v", err)
+		}
+	})
+}

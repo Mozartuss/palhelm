@@ -42,6 +42,7 @@ export interface ServerInfo {
   sessionDays?: number;
   saveSyncMinutes?: number;
   mapTilesCommand?: string;
+  palIconsCommand?: string;
 }
 
 export type HealthState = "ok" | "error";

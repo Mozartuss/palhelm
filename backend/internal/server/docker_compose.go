@@ -15,6 +15,14 @@ type composeContainerNames struct {
 }
 
 func mapTilesInstallCommand(cfg config.Config) string {
+	return installCommand(cfg, "fetch-map-tiles")
+}
+
+func palIconsInstallCommand(cfg config.Config) string {
+	return installCommand(cfg, "fetch-pal-icons")
+}
+
+func installCommand(cfg config.Config, command string) string {
 	service := strings.TrimSpace(cfg.PanelService)
 	if service == "" {
 		service = "palhelm"
@@ -24,11 +32,11 @@ func mapTilesInstallCommand(cfg config.Config) string {
 		if yaml.Unmarshal(b, &compose) == nil {
 			name := strings.TrimSpace(compose.Services[service].ContainerName)
 			if validDockerName(name) {
-				return "docker exec " + name + " palhelm fetch-map-tiles"
+				return "docker exec " + name + " palhelm " + command
 			}
 		}
 	}
-	return "docker compose exec " + shellArg(service) + " palhelm fetch-map-tiles"
+	return "docker compose exec " + shellArg(service) + " palhelm " + command
 }
 
 func validDockerName(name string) bool {

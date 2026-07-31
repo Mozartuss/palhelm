@@ -79,6 +79,7 @@ function PaldeckContent({ data, search, setSearch, filter, setFilter, species }:
     queryFn: () => api.paldeck.iconDataset(),
     staleTime: Infinity,
   });
+  const serverQuery = useQuery({ queryKey: ["server"], queryFn: () => api.server.get() });
   const isPlayer = "player" in data;
   const captureAvailable = isPlayer ? data.coverage.captureCountsAvailable : data.coverage.playersWithCaptureCounts > 0;
   const captureTruncated = data.coverage.captureCountsTruncated;
@@ -103,7 +104,7 @@ function PaldeckContent({ data, search, setSearch, filter, setFilter, species }:
       </Banner>
       {iconDatasetQuery.data?.count === 0 && (
         <Banner tone="warn">
-          Pal icons are not installed. Initials are shown instead. Run <code>scripts/fetch-pal-icons.sh ./palhelm-data/pal-icons</code> to add portraits.
+          Pal icons are not installed. Initials are shown instead. Run <code>{serverQuery.data?.palIconsCommand ?? "docker compose exec palhelm palhelm fetch-pal-icons"}</code> to add portraits.
         </Banner>
       )}
 

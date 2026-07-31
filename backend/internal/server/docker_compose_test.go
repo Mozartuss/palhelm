@@ -45,3 +45,29 @@ func TestMapTilesInstallCommand(t *testing.T) {
 		}
 	})
 }
+
+func TestPalIconsInstallCommand(t *testing.T) {
+	t.Run("uses explicit container name", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "docker-compose.yml")
+		compose := "services:\n  dashboard:\n    container_name: palworld-dashboard\n"
+		if err := os.WriteFile(path, []byte(compose), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		cfg := config.Config{ComposeFile: path, PanelService: "dashboard"}
+		if got, want := palIconsInstallCommand(cfg), "docker exec palworld-dashboard palhelm fetch-pal-icons"; got != want {
+			t.Fatalf("palIconsInstallCommand() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("falls back to compose service", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "docker-compose.yml")
+		compose := "services:\n  dashboard:\n    image: palhelm\n"
+		if err := os.WriteFile(path, []byte(compose), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		cfg := config.Config{ComposeFile: path, PanelService: "dashboard"}
+		if got, want := palIconsInstallCommand(cfg), "docker compose exec dashboard palhelm fetch-pal-icons"; got != want {
+			t.Fatalf("palIconsInstallCommand() = %q, want %q", got, want)
+		}
+	})
+}

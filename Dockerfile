@@ -27,6 +27,7 @@ RUN apk add --no-cache ca-certificates tzdata gcompat libstdc++ curl \
     && addgroup -S palhelm && adduser -S -G palhelm palhelm
 COPY --from=backend /out/palhelm /usr/local/bin/palhelm
 COPY --chmod=755 scripts/fetch-map-tiles.sh /usr/local/bin/fetch-map-tiles
+COPY --chmod=755 scripts/fetch-pal-icons.sh /usr/local/bin/fetch-pal-icons
 USER palhelm
 ENV PALHELM_ADDR=:8080 PALHELM_DATA_DIR=/data
 VOLUME /data

@@ -76,8 +76,8 @@ The game server side needs `RCON_ENABLED=true` and an `ADMIN_PASSWORD` (which al
 Optional extras, fetched once into your data volume because the art is game-derived and never shipped:
 
 ```sh
-scripts/fetch-map-tiles.sh ./palhelm-data/map-tiles   # live map tiles
-scripts/fetch-pal-icons.sh ./palhelm-data/pal-icons   # pal preview icons
+docker compose exec palhelm palhelm fetch-map-tiles   # live map tiles
+docker compose exec palhelm palhelm fetch-pal-icons   # pal preview icons
 ```
 
 ## Optional configuration
