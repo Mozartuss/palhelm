@@ -193,6 +193,21 @@ func mapProp(name, keyType, valueType string, count uint32, entries []byte) []by
 	return w.b
 }
 
+func setProp(name, elementType string, count uint32, elements []byte) []byte {
+	body := &gw{}
+	body.u32(0) // reserved/removed-element word
+	body.u32(count)
+	body.bytes(elements)
+	preamble := &gw{}
+	preamble.fstr(elementType)
+	preamble.optGUIDAbsent()
+	w := &gw{}
+	w.bytes(propHeader(name, "SetProperty", uint64(len(body.b))))
+	w.bytes(preamble.b)
+	w.bytes(body.b)
+	return w.b
+}
+
 // --- composite blobs ---
 
 func characterBlob(saveParamInner []byte, group [16]byte) []byte {
@@ -425,6 +440,54 @@ func parseSyntheticWorld(t *testing.T, data []byte) *World {
 	w := &World{Players: []Player{}, Pals: []Pal{}, Guilds: []Guild{}, Bases: []BaseCamp{}, Stats: stats}
 	extractWorldSaveData(w, g.Properties)
 	return w
+}
+
+func TestSetPropertyKeepsFollowingPropertiesAligned(t *testing.T) {
+	elements := &gw{}
+	elements.bytes(guidStructProp("PlayerUId", testGUID(0x71)))
+	elements.fstr("None")
+	elements.bytes(guidStructProp("PlayerUId", testGUID(0x72)))
+	elements.fstr("None")
+
+	data := &gw{}
+	data.bytes(setProp("InLockerCharacterInstanceIDArray", "StructProperty", 2, elements.b))
+	data.bytes(intProp("Sentinel", 42))
+	data.fstr("None")
+
+	stats := newStats()
+	props, err := readProperties(newReaderWithStats(data.b, &stats), ".worldSaveData", &stats)
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, ok := props["InLockerCharacterInstanceIDArray"].Value.([]any)
+	if !ok || len(set) != 2 {
+		t.Fatalf("set = %#v, want two struct elements", props["InLockerCharacterInstanceIDArray"].Value)
+	}
+	if got := props["Sentinel"].Value; got != int32(42) {
+		t.Fatalf("sentinel = %#v, want 42", got)
+	}
+	if stats.SkippedProperties != 0 || stats.SkippedStructs != 0 {
+		t.Fatalf("unexpected skips: %+v", stats)
+	}
+}
+
+func TestUnknownSetElementRecoversAtDeclaredBodyEnd(t *testing.T) {
+	data := &gw{}
+	data.bytes(setProp("FutureSet", "FutureProperty", 1, []byte{0xff}))
+	data.bytes(intProp("Sentinel", 42))
+	data.fstr("None")
+
+	stats := newStats()
+	props, err := readProperties(newReaderWithStats(data.b, &stats), ".worldSaveData", &stats)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := props["Sentinel"].Value; got != int32(42) {
+		t.Fatalf("sentinel = %#v, want 42", got)
+	}
+	if stats.SkippedProperties != 1 {
+		t.Fatalf("skipped properties = %d, want 1", stats.SkippedProperties)
+	}
 }
 
 func TestParseSynthetic1_0Fixture(t *testing.T) {

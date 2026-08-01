@@ -153,7 +153,7 @@ func recoverBodyStart(r *reader, payloadStart int, typ string) (int, bool) {
 			return 0, false
 		}
 		return r.position(), true
-	case "ArrayProperty":
+	case "ArrayProperty", "SetProperty":
 		if _, err := r.fstring(); err != nil { // element type
 			return 0, false
 		}
@@ -253,6 +253,8 @@ func readProperty(r *reader, typ string, size uint64, path string, stats *ParseS
 		p.Value, err = readStruct(r, size, path, stats)
 	case "ArrayProperty":
 		p.Value, err = readArray(r, size, path, stats)
+	case "SetProperty":
+		p.Value, err = readSet(r, path, stats)
 	case "MapProperty":
 		p.Value, err = readMap(r, path, stats)
 	default:
@@ -496,6 +498,46 @@ func readMap(r *reader, path string, stats *ParseStats) ([]mapEntry, error) {
 		entries = append(entries, mapEntry{Key: k, Value: v})
 	}
 	return entries, nil
+}
+
+// readSet decodes Unreal's SetProperty payload. Its tag preamble declares the
+// element type, followed by the optional property GUID. The size-counted body
+// mirrors a MapProperty: a reserved/removed-element word, an element count, and
+// then the serialized values.
+func readSet(r *reader, path string, stats *ParseStats) (any, error) {
+	t, err := r.fstring()
+	if err != nil {
+		return nil, err
+	}
+	if _, err = readOptionalGUID(r); err != nil {
+		return nil, err
+	}
+	if _, err = r.u32(); err != nil {
+		return nil, err
+	}
+	n, err := r.u32()
+	if err != nil {
+		return nil, err
+	}
+	if err := validateCount("set", n, r.remaining(), minValueSize(t)); err != nil {
+		return nil, err
+	}
+	if err := consumeDecoded(stats, "set", uint64(n), uint64(n)*decodedValueSize(t)); err != nil {
+		return nil, err
+	}
+	if vals, ok, err := readTypedArray(r, t, n, path, stats); ok {
+		return vals, err
+	}
+	hint := typeHints[path+".Element"]
+	vals := make([]any, 0)
+	for range n {
+		v, err := readValue(r, t, hint, path+".Element", stats)
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, v)
+	}
+	return vals, nil
 }
 
 func readValue(r *reader, typ, structType, path string, stats *ParseStats) (any, error) {

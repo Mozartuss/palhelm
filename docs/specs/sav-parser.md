@@ -32,7 +32,7 @@ Decode-only port of the property tree reader from the oMaN-Rod fork of palworld-
 Requirements:
 - Header struct (save_game_version, package version, engine version, custom format data), then
   properties-until-end loop. Support property types: Int, Int64, UInt32, Float, Double, Bool, Byte,
-  Enum, Str, Name, Struct (incl. Vector, Quat, LinearColor, DateTime, Guid), Array, Map, and raw
+  Enum, Str, Name, Struct (incl. Vector, Quat, LinearColor, DateTime, Guid), Array, Set, Map, and raw
   fallback for anything unknown (skip by size, count skips).
 - **Type hints**: port `PALWORLD_TYPE_HINTS` for the paths we traverse (empty-map/array typing).
 - **Custom RawData decoders — ONLY these two** (everything else stays `[]byte`):
