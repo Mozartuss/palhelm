@@ -339,7 +339,7 @@ func loadPlayerDirectory(w *World, levelPath string, opts Options) {
 		return
 	}
 	for _, de := range entries {
-		if de.IsDir() || !strings.HasSuffix(strings.ToLower(de.Name()), ".sav") {
+		if de.IsDir() || !isPlayerSaveName(de.Name()) {
 			continue
 		}
 		raw, e := readSave(filepath.Join(dir, de.Name()))
@@ -356,10 +356,10 @@ func loadPlayerDirectory(w *World, levelPath string, opts Options) {
 		if nested, ok := propertyProperties(data, "SaveData"); ok {
 			data = nested
 		}
-		uid := strings.TrimSuffix(de.Name(), filepath.Ext(de.Name()))
+		uid := playerSaveUID(data, de.Name())
 		p := Player{UID: uid, Nickname: firstStringRecursive(data, "NickName", "Nickname"), Level: int32(firstIntRecursive(data, "Level"))}
 		decodePlayerProgress(data, &p)
-		if loc, ok := firstVectorRecursive(data, "Location", "Position"); ok {
+		if loc, ok := playerSaveLocation(data); ok {
 			p.Location = &loc
 		}
 		// Party and pal-box container GUIDs live at the SaveData top level as
@@ -369,6 +369,38 @@ func loadPlayerDirectory(w *World, levelPath string, opts Options) {
 		p.PalStorageContainerID = containerGUID(data, "PalStorageContainerId")
 		mergePlayer(w, p)
 	}
+}
+
+func isPlayerSaveName(name string) bool {
+	if !strings.EqualFold(filepath.Ext(name), ".sav") {
+		return false
+	}
+	stem := strings.TrimSuffix(name, filepath.Ext(name))
+	if len(stem) != 32 {
+		return false
+	}
+	for _, c := range stem {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func playerSaveUID(data propertyMap, filename string) string {
+	if uid := firstGUID(data, "PlayerUId", "PlayerUID", "PlayerUid"); uid != "" {
+		return uid
+	}
+	return strings.TrimSuffix(filename, filepath.Ext(filename))
+}
+
+func playerSaveLocation(data propertyMap) (Vector, bool) {
+	if transform, ok := propertyProperties(data, "LastTransform"); ok {
+		if location, found := firstVector(transform, "Translation", "Location", "Position"); found {
+			return location, true
+		}
+	}
+	return firstVectorRecursive(data, "Location", "Position")
 }
 
 func mergePlayer(w *World, p Player) {
