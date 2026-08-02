@@ -67,6 +67,11 @@ var typeHints = map[string]string{
 	".worldSaveData.FishingSpotSaveData.Key":        "Guid",
 	".worldSaveData.LockGimmickSaveData.Key":        "Guid",
 	".worldSaveData.SupplySaveData.SupplyInfos.Key": "Guid",
+	// Player saves gained this populated map in later 1.x builds. Its tag says
+	// StructProperty for both sides, but the key body is a bare 16-byte GUID.
+	// Without the concrete hint it is mistaken for a nested property list and
+	// the whole treasure-map progress property is skipped as format drift.
+	".SaveData.RecordData.FoundTreasureMapPointMap.Key": "Guid",
 }
 
 func readProperties(r *reader, path string, stats *ParseStats) (propertyMap, error) {
